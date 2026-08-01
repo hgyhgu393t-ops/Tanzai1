@@ -17,7 +17,7 @@ MODEL_FILE = 'advanced_gemini.pt'
 
 # 📌 คำแนะนำ: แทนแค่นำ File ID ของไฟล์ advanced_gemini.pt จาก Google Drive มาวางแทนที่ตรงนี้ครับ
 # (ดู ID จากลิงก์แชร์ เช่น drive.google.com/file/d/FILE_ID_ตรงนี้/view)
-GDRIVE_FILE_ID = 'ใส่_FILE_ID_จาก_GOOGLE_DRIVE_ตรงนี้' 
+GDRIVE_FILE_ID = '1OUC-oCdDkqjitqeRyWVdFVP3cUaQy3vO' 
 
 if not os.path.exists(MODEL_FILE):
     print("⏳ ไม่พบไฟล์โมเดลในเซิร์ฟเวอร์ กำลังดาวน์โหลดจาก Google Drive...")
