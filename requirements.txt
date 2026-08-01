@@ -1,4 +1,5 @@
-torch
 gradio
+torch
 googlesearch-python
 beautifulsoup4
+gdown
