@@ -5,8 +5,25 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 import urllib.request
+import os
+import gdown  # <--- เพิ่ม gdown เพื่อโหลดไฟล์จาก Google Drive
 from bs4 import BeautifulSoup
 from googlesearch import search
+
+# ==========================================
+# ⚡ ระบบดาวน์โหลดไฟล์โมเดลอัตโนมัติจาก Google Drive
+# ==========================================
+MODEL_FILE = 'advanced_gemini.pt'
+
+# 📌 คำแนะนำ: แทนแค่นำ File ID ของไฟล์ advanced_gemini.pt จาก Google Drive มาวางแทนที่ตรงนี้ครับ
+# (ดู ID จากลิงก์แชร์ เช่น drive.google.com/file/d/FILE_ID_ตรงนี้/view)
+GDRIVE_FILE_ID = 'ใส่_FILE_ID_จาก_GOOGLE_DRIVE_ตรงนี้' 
+
+if not os.path.exists(MODEL_FILE):
+    print("⏳ ไม่พบไฟล์โมเดลในเซิร์ฟเวอร์ กำลังดาวน์โหลดจาก Google Drive...")
+    url = f'https://drive.google.com/uc?id={GDRIVE_FILE_ID}'
+    gdown.download(url, MODEL_FILE, quiet=False)
+    print("ดาวน์โหลดโมเดลเรียบร้อยแล้ว!")
 
 # ==========================================
 # 0. คลาสตัวตัดคำระดับอักขระดั้งเดิม
@@ -144,7 +161,6 @@ class DeepTanzGemmaModel(nn.Module):
         self.lm_head = nn.Linear(n_embd, vocab_size, bias=False)
         self.embed.weight = self.lm_head.weight
 
-    # 🛠️ ซ่อมแซมระบบคิดย้อนกลับไปข้างหน้า (Forward Function) ที่หายไปเรียบร้อยครับ!
     def forward(self, idx):
         x = self.embed(idx) * math.sqrt(n_embd)
         for layer in self.layers:
@@ -152,17 +168,17 @@ class DeepTanzGemmaModel(nn.Module):
         x = self.norm(x)
         return self.lm_head(x)
 
-# โหลดระบบตัดคำศัพท์และไฟล์โมเดลที่ผ่านการเทรน
+# โหลดระบบตัดคำศัพท์และไฟล์โมเดล
 with open('tokenizer.pkl', 'rb') as f:
     tokenizer = pickle.load(f)
 
 model = DeepTanzGemmaModel(tokenizer.vocab_size)
-state_dict = torch.load('advanced_gemini.pt', map_location=torch.device('cpu'))
+state_dict = torch.load(MODEL_FILE, map_location=torch.device('cpu'))
 model.load_state_dict(state_dict)
 model.eval()
 
 # ==========================================
-# 2. ฟังก์ชันเสริมระบบ Google Live Search ดึงข้อมูลสด
+# 2. ฟังก์ชันเสริมระบบ Google Live Search
 # ==========================================
 def fetch_google_knowledge(query):
     try:
@@ -188,7 +204,7 @@ def fetch_google_knowledge(query):
         return ""
 
 # ==========================================
-# 3. เอนจิ้นประมวลผลข้อความคู่ขนาน Google Search
+# 3. เอนจิ้นประมวลผลข้อความ
 # ==========================================
 def chat_engine_stream(user_input, history):
     full_prompt = f"Q: {user_input}\nA: "
@@ -238,7 +254,7 @@ def chat_engine_stream(user_input, history):
         yield generated_text.strip()
 
 # ==========================================
-# 4. หน้ากากแอปพลิเคชัน Gradio ดาร์กธีมสไตล์ Google DeepMind
+# 4. หน้ากากแอปพลิเคชัน Gradio
 # ==========================================
 custom_css = """
 footer {visibility: hidden !important}
@@ -269,8 +285,7 @@ body, .gradio-container {
 .gradio-container .buttons { display: none !important; }
 """
 
-# ย้ายส่วนของการประกาศ css ไปวางไว้ที่พิกัด launch() ตอนเปิดรันตามกฎ Gradio 6.0
-with gr.Blocks() as demo:
+with gr.Blocks(css=custom_css) as demo:
     gr.HTML(
         """
         <div class="center-header">
@@ -281,5 +296,7 @@ with gr.Blocks() as demo:
     )
     gr.ChatInterface(fn=chat_engine_stream)
 
-# ปรับส่งค่า css ควบคุมธีมหน้าต่างการใช้งานตรงนี้อย่างถูกต้อง
-demo.launch(css=custom_css)
+# 🌐 ปรับระบบรันให้รองรับ Render.com
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 7860))
+    demo.launch(server_name="0.0.0.0", server_port=port)
